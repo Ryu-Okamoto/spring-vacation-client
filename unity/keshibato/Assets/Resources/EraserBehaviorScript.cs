@@ -4,20 +4,33 @@ using UnityEngine;
 
 public class EraserBehaviorScript : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
+    [SerializeField] private GameObject particleObject;
+    private const int ARROW_INDEX = 3;
+
+    void Start() {}
+    void Update() {}
+
+    void SetArrowActive(bool available) {
+        transform.GetChild(ARROW_INDEX).gameObject.SetActive(available);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+    void SetArrowScale(float scale) {
+        scale *= 2.0f;
+        GameObject arrow = transform.GetChild(ARROW_INDEX).gameObject;
+        arrow.transform.localScale = new Vector3(scale, scale, scale);
     }
 
-    public GameObject particleObject;
-    void explode() {
+    void SetArrowRotation(float angle) {
+        GameObject arrow = transform.GetChild(ARROW_INDEX).gameObject;
+        arrow.transform.rotation = Quaternion.Euler(90.0f, angle, 0.0f);
+    }
+
+    void AddForce(Vector2 direction) {
+        Vector2 force = 1800.0f * direction;
+        gameObject.GetComponent<Rigidbody>().AddForce(force.x, 0.0f, force.y);
+    }
+
+    void Explode() {
         Instantiate(particleObject, this.transform.position, Quaternion.identity);
         Destroy(this.gameObject);
     }

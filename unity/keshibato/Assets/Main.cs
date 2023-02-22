@@ -4,49 +4,115 @@ using UnityEngine;
 
 public class Main : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
+    [SerializeField] private Material[] coverColors;
+    [SerializeField] private GameObject desk;
+    [SerializeField] private GameObject dragHandler;
+    [System.Serializable]
+    class Users
     {
-        
+        public string[] users;
+    }
+    [System.Serializable]
+    class PullInfo 
+    {
+        public string user;
+        public float directionX;
+        public float directionY;
     }
 
-    Queue<GameObject> erasers = new Queue<GameObject>();
-    bool instantiated = false;
-    bool exploded = false;
-    int instantiatedFrame = 0;
-    int explodedFrame = 0;
+    private const int COVER_INDEX = 1;
 
-    // Update is called once per frame
-    void Update()
-    {
-        // 消しゴムの生成
-        if (instantiated) {
-            ++instantiatedFrame;
-            if (instantiatedFrame == 60) {
-                instantiatedFrame = 0;
-                instantiated = false;
-            }
-        }
-        else if (Input.GetKey(KeyCode.S)) {
-            GameObject prefab = (GameObject)Resources.Load("Eraser");
-            erasers.Enqueue(Instantiate(prefab, new Vector3(0.0f, 10.0f, 0.0f), Quaternion.identity));
-            instantiated = true;
-        }
+    private Dictionary<string, GameObject> erasers;
+    private bool isThereMoving;
 
-        // 消しゴムの爆発
-        if (exploded) {
-            ++explodedFrame;
-            if (explodedFrame == 30) {
-                explodedFrame = 0;
-                exploded = false;
-            }
+    // for demo play
+    private string playerName = "alice";
+
+    void Start() {
+        erasers = new Dictionary<string, GameObject>();
+        isThereMoving = false;
+        
+        // for demo play
+        Setup("{\"users\":[\"alice\", \"bob\", \"carol\", \"dave\", \"ellen\"]}");
+        EnablePull();
+
+    }
+
+    // Raect -> Unity
+    public void Setup(string jsonString) {
+        foreach (var eraser in erasers.Values)
+            eraser.SendMessage("Explode");
+        erasers.Clear();
+        string[] users = JsonUtility.FromJson<Users>(jsonString).users;
+        GameObject prefab = (GameObject)Resources.Load("Eraser");
+        Vector3[] initialPositions = CalculateInitialPositions(users.Length);
+        for (int i = 0; i < users.Length; ++i) {
+            GameObject eraser = Instantiate(prefab, initialPositions[i], Quaternion.identity);
+            GameObject cover = eraser.transform.GetChild(COVER_INDEX).gameObject;
+            int colorIndex = i % coverColors.Length;
+            cover.GetComponent<MeshRenderer>().material = coverColors[colorIndex];
+            erasers.Add(users[i], eraser);
         }
-        else if (Input.GetKey(KeyCode.Return)) {
-            if (erasers.Count != 0) {
-                GameObject eraser = erasers.Dequeue();
-                eraser.SendMessage("explode");
-                exploded = true;
+    }
+
+    private Vector3[] CalculateInitialPositions(int numOfErasers) {
+        float radius = 0.75f * desk.transform.localScale.z;
+        float aspect = desk.transform.localScale.x / desk.transform.localScale.z;
+        Vector3[] initialPositions = new Vector3[numOfErasers];
+        for (int i = 0; i < numOfErasers; ++i) {
+            float argument = Mathf.Deg2Rad * i * 360.0f / numOfErasers;
+            initialPositions[i] = new Vector3(aspect * radius * Mathf.Cos(argument), 5.0f, radius * Mathf.Sin(argument));
+        }
+        return initialPositions;
+    } 
+
+    // React -> Unity
+    public void EnablePull() {
+        dragHandler.SetActive(true);
+        dragHandler.SendMessage("SetPlayerEraser", erasers[playerName]);
+    }
+
+    // Unity -> React
+    void InformPullInfo(Vector2 direction) {
+        dragHandler.SetActive(false);
+
+        // TODO
+        // call React's function and inform server with pull information.
+        
+        isThereMoving = true;
+    }
+
+    // React -> Unity
+    public void ReflectPullInfo(string jsonString) {
+        PullInfo pullInfo = JsonUtility.FromJson<PullInfo>(jsonString);
+        string userName = pullInfo.user;
+        if (playerName == userName)
+            return;
+        float directionX = pullInfo.directionX;
+        float directionY = pullInfo.directionY;
+        erasers[userName].SendMessage("AddForce", new Vector2(directionX, directionY));
+        isThereMoving = true;
+    }
+
+    void Update() {
+        if (isThereMoving) {
+            foreach (var (username, eraser) in erasers) {
+                if (eraser.transform.position.y < -5.0f) {
+                    eraser.SendMessage("Explode");
+                    erasers.Remove(username);
+                    return;
+                }
+                if (!eraser.GetComponent<Rigidbody>().IsSleeping())
+                    return;
             }
+            isThereMoving = false;
+
+            // for demo play
+            if (erasers.ContainsKey(playerName))
+                EnablePull();
+
+            // TODO
+            // call React's function and inform positions of erasers.
         }
     }
 }

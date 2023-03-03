@@ -1166,29 +1166,29 @@ var tempDouble;
 var tempI64;
 
 var ASM_CONSTS = {
- 2589484: function() {
+ 2589420: function() {
   Module["emscripten_get_now_backup"] = performance.now;
  },
- 2589539: function($0) {
+ 2589475: function($0) {
   performance.now = function() {
    return $0;
   };
  },
- 2589587: function($0) {
+ 2589523: function($0) {
   performance.now = function() {
    return $0;
   };
  },
- 2589635: function() {
+ 2589571: function() {
   performance.now = Module["emscripten_get_now_backup"];
  },
- 2589690: function() {
+ 2589626: function() {
   return Module.webglContextAttributes.premultipliedAlpha;
  },
- 2589751: function() {
+ 2589687: function() {
   return Module.webglContextAttributes.preserveDrawingBuffer;
  },
- 2589815: function() {
+ 2589751: function() {
   return Module.webglContextAttributes.powerPreference;
  }
 };
@@ -1290,6 +1290,10 @@ function stackTrace() {
  var js = jsStackTrace();
  if (Module["extraStackTrace"]) js += "\n" + Module["extraStackTrace"]();
  return demangleAll(js);
+}
+
+function _InformPosition(isLast, userName, positionX, positionY, positionZ) {
+ window.dispatchReactUnityEvent("InformPosition", isLast, UTF8ToString(userName), positionX, positionY, positionZ);
 }
 
 function _InformPullInfo(directionX, directionY) {
@@ -12937,6 +12941,7 @@ function intArrayFromString(stringy, dontAddNull, length) {
 }
 
 var asmLibraryArg = {
+ "InformPosition": _InformPosition,
  "InformPullInfo": _InformPullInfo,
  "JS_Accelerometer_IsRunning": _JS_Accelerometer_IsRunning,
  "JS_Accelerometer_Start": _JS_Accelerometer_Start,

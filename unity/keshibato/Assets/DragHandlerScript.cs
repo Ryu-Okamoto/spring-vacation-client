@@ -56,7 +56,7 @@ public class DragHandlerScript : MonoBehaviour, IDragHandler, IBeginDragHandler,
             Vector2 direction = scale * difference.normalized; 
             playerEraser.SendMessage("AddForce", direction);
             gameManager.SendMessage("FireInformPullInfo", direction);
-            gameObject.SetActive(false); // NEW
+            gameObject.SetActive(false);
         }
         playerEraser.SendMessage("SetArrowActive", false);
     }

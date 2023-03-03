@@ -8,7 +8,8 @@ public class Main : MonoBehaviour
 {
     [DllImport("__Internal")]
     private static extern void InformPullInfo(float directionX, float directionY, string rotation);
-	private static extern void InformPosition(int isLast, string userName, float positionX, float positionY, float positionZ);
+	[DllImport("__Internal")]
+    private static extern void InformPosition(int isLast, string userName, float positionX, float positionY, float positionZ);
 	
     [SerializeField] private Material[] coverColors;
     [SerializeField] private GameObject desk;
@@ -20,11 +21,17 @@ public class Main : MonoBehaviour
         public string[] users;
     }
     [System.Serializable]
-    class PullInfo // TODO: Jsonの構造がちがう！
+    class PullInfo
     {
-        public string user;
         public float directionX;
         public float directionY;
+        public string rotation;
+    }
+    [System.Serializable]
+    class SharePullInfo
+    {
+        public string user;
+        public PullInfo pullInfo;
     }
     [System.Serializable]
     class UserPosition 
@@ -86,11 +93,12 @@ public class Main : MonoBehaviour
 
     // React -> Unity
     public void ReflectPullInfo(string jsonString) {
-        PullInfo pullInfo = JsonUtility.FromJson<PullInfo>(jsonString);
-        string userName = pullInfo.user;
-        float directionX = pullInfo.directionX;
-        float directionY = pullInfo.directionY;
+        SharePullInfo sharePullInfo = JsonUtility.FromJson<SharePullInfo>(jsonString);
+        string userName = sharePullInfo.user;
+        float directionX = sharePullInfo.pullInfo.directionX;
+        float directionY = sharePullInfo.pullInfo.directionY;
         erasers[userName].SendMessage("AddForce", new Vector2(directionX, directionY));
+        isMoving = true;
     }
 
     // React -> Unity
@@ -107,15 +115,17 @@ public class Main : MonoBehaviour
             }
         }
         foreach (string deadUser in deadUsers) {
-            erasers[deadUser].SendMessage("Explode");
-            erasers.Remove(deadUser);
+            if (erasers.ContainsKey(deadUser)) {
+                erasers[deadUser].SendMessage("Explode");
+                erasers.Remove(deadUser);
+            }
         }
     }
 
     void Update() {
         if (isMoving) {
             foreach (var (username, eraser) in erasers) {
-                if (eraser.transform.position.y < -5.0f) {
+                if (eraser.transform.position.y < -3.0f) {
                     eraser.SendMessage("Explode");
                     erasers.Remove(username);
                     return;
@@ -130,14 +140,15 @@ public class Main : MonoBehaviour
 
     void FireInformPullInfo(Vector2 direction) {
         InformPullInfo(direction.x, direction.y, null);
+        isMoving = true;
     }
     void FireInformPosition() {
         foreach (string username in erasers.Keys) {
             Vector3 position = erasers[username].transform.position;
             if (username == erasers.Keys.Last())
-                InformPosition(0, username, position.x, position.y, position.z);
-            else
                 InformPosition(1, username, position.x, position.y, position.z);
+            else
+                InformPosition(0, username, position.x, position.y, position.z);
         }
     }
 }

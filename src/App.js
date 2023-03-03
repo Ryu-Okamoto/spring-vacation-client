@@ -1,10 +1,12 @@
 import "./App.css";
 import { io } from "socket.io-client";
-import { useCallback, useEffect, useState} from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Unity, useUnityContext } from "react-unity-webgl";
 
 function App() {
-  const [user, setUser] = useState("");
+  const [user, setUser] = useState("anonymous");
+  const users = useRef([]);
+  const positions = useRef([]);
   const [userButtonStatus, setUserButtonStatus] = useState(false);
   const [readyButtonStatus, setReadyButtonStatus] = useState(false);
   const { unityProvider, sendMessage , addEventListener, removeEventListener } = useUnityContext({
@@ -13,9 +15,6 @@ function App() {
     frameworkUrl: "Build/public.framework.js",
     codeUrl: "Build/public.wasm",
   });
-
-  let users = [];
-  let positions = [];
 
   const socket = io("localhost:5001/", {
     transports: ["websocket"],
@@ -30,7 +29,6 @@ function App() {
   };
 
   const handleUserClick = () => {
-    
     socket.emit("c2sRequestJoin", { "user": user });
     if (userButtonStatus === false) {
       setUserButtonStatus(true);
@@ -38,33 +36,28 @@ function App() {
   };
   
   const handleReadyClick = () => { 
+    setReadyButtonStatus(true);
     socket.on("s2cStart", (json) => {
+
+      console.log("start");
+
       const firstUser = json["firstUser"];
-      users = json["users"];
-      console.log("start from server");
-      console.log(JSON.stringify(users));
-      setup("{ \"users\": " + JSON.stringify(users) + " }");
+      users.current = json["users"];
+      setup("{ \"users\": " + JSON.stringify(users.current) + " }");
       if (firstUser === user) {
         enablePull(firstUser);
       }
     });
-    
     socket.on("s2cSharePull", (json) => {
-      console.log(JSON.stringify(json));
       if (user !== json["user"])
         reflectPullInfo(JSON.stringify(json));
     });
-    
     socket.on("s2cAveragePositions", (data) => {
-      synchronizePositions({ "positions": data["positions"] });
+      synchronizePositions(JSON.stringify({ "positions": data["positions"] }));
       if (user === data["nextUser"]) 
-      enablePull(user);
+        enablePull(user);
     });
-    
-    if (readyButtonStatus === false) {
-      setReadyButtonStatus(true);
-      socket.emit("c2sOK", { "user": user });
-    }
+    socket.emit("c2sOK", { "user": user });
   };
 
   const handleInformPullInfo = useCallback((directionX, directionY, rotation) => {
@@ -78,10 +71,10 @@ function App() {
         }
       }
     );
-  }, [socket]);
+  }, [socket, user]);
 
   const handleInformPosition = useCallback((isLast, username, positionX, positionY, positionZ) => {
-    positions.push(
+    positions.current.push(
       { 
         "user": username , 
         "positionX": positionX,
@@ -89,9 +82,11 @@ function App() {
         "positionZ": positionZ
       }
       );
-    if (isLast === 1)
-      socket.emit("c2sInformPositions", { "positions": positions });
-  }, [socket]); 
+    if (isLast === 1) {
+      socket.emit("c2sInformPositions", { "user": user, "positions": positions.current });
+      positions.current.splice(0);
+    }
+  }, [socket, user]); 
 
   function setup(jsonString) {
     sendMessage("GameManager", "Setup", jsonString);
@@ -110,13 +105,12 @@ function App() {
     socket.on("connect", (data) => {});
 
     socket.on("s2cInformUsers", (data) => {
-      console.log("s2cInformUsers");
-      users = data["users"];
+      users.current = data["users"];
     });
     
     socket.on("s2cInformResult", (data) => {
       //TODO 結果の表示
-      const result = data["result"];
+      //const result = data["result"];
     });
 
     socket.on("disconnect", (data) => {
@@ -135,35 +129,31 @@ function App() {
 
   return (
     <div className="App">
-      <h1>けしばと</h1>
-      {userButtonStatus ? (
-        <>
-          <h2>
-            input your username:
-            <input type="text" value={user} onChange={handleName}></input>
-          </h2>
-          <button onClick={handleUserClick}>join</button>
-          <button onClick={handleReadyClick}>ready</button>
-          <Unity
-            unityProvider={unityProvider}
-            style={{
-              visibility : readyButtonStatus ? "visible" : "hidden",
-              height: 400,
-              width: 800,
-              border: "2px solid black",
-              background: "grey",
-            }}
+      <h1>keshibato!</h1>
+      {userButtonStatus ?
+        <> 
+          <Unity 
+            unityProvider={unityProvider} 
+            style={ 
+              {
+                visibility: readyButtonStatus ? "visible" : "hidden",
+                width: 800,
+                height: 400,
+                background: "grey"
+              }
+            }
           />
+          {readyButtonStatus ? <></> : <button onClick={handleReadyClick}>ready</button>}
         </>
-      ) : (
+        :
         <>
           <h2>
-            input your username:
+            your name : 
             <input type="text" value={user} onChange={handleName}></input>
           </h2>
           <button onClick={handleUserClick}>join</button>
         </>
-      )}
+      }
     </div>
   );
 }

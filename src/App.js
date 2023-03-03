@@ -73,7 +73,7 @@ function App() {
     sendMessage(
       "GameManager",
       "Setup",
-      json
+      "{\"users\":[\"alice\", \"bob\", \"carol\", \"dave\", \"ellen\"]}"
     );
   }
   function enablePull() {

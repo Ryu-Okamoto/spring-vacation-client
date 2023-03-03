@@ -1,10 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Runtime.InteropServices;
 
 public class Main : MonoBehaviour
 {
-    [SerializeField] private Material[] coverColors;
+    [DllImport("__Internal")]
+    private static extern void InformPullInfo(float directionX, float directionY);
+	private static extern void InformPositions(string userName, float positionX, float positionY, float positionZ);
+	[SerializeField] private Material[] coverColors;
     [SerializeField] private GameObject desk;
     [SerializeField] private GameObject dragHandler;
     [System.Serializable]
@@ -23,7 +27,8 @@ public class Main : MonoBehaviour
     private const int COVER_INDEX = 1;
 
     private Dictionary<string, GameObject> erasers;
-    private bool isThereMoving;
+    private bool isThereMoving;//isMovingとの違いはなんでしょう
+
 
     // for demo play
     private string playerName = "alice";
@@ -33,8 +38,8 @@ public class Main : MonoBehaviour
         isThereMoving = false;
         
         // for demo play
-        Setup("{\"users\":[\"alice\", \"bob\", \"carol\", \"dave\", \"ellen\"]}");
-        EnablePull();
+        // Setup("{\"users\":[\"alice\", \"bob\", \"carol\", \"dave\", \"ellen\"]}");
+        // EnablePull();
 
     }
 
@@ -73,14 +78,15 @@ public class Main : MonoBehaviour
     }
 
     // Unity -> React
-    void InformPullInfo(Vector2 direction) {
-        dragHandler.SetActive(false);
+    // public void InformPullInfo(Vector2 direction) {
+    //     dragHandler.SetActive(false);
 
-        // TODO
-        // call React's function and inform server with pull information.
+    //     // TODO
+    //     // call React's function and inform server with pull information.
+
         
-        isThereMoving = true;
-    }
+    //     isThereMoving = true;
+    // }
 
     // React -> Unity
     public void ReflectPullInfo(string jsonString) {

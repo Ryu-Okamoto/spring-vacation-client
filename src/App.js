@@ -31,6 +31,7 @@ function App() {
   };
 
   const handleUserClick = () => {
+    //startボタン
     if (userButtonStatus === false) {
       setUserButtonStatus(true);
     } else {
@@ -46,6 +47,8 @@ function App() {
         console.log("start from server");
         console.log(JSON.stringify(users));
 
+        // TODO: 消しゴムとユーザの結びつけ
+
         setup(JSON.stringify(users));
         if (firstUser === user) {
           enablePull();
@@ -55,19 +58,27 @@ function App() {
         if (user !== json["user"]) {
           reflectPullInfo(JSON.stringify(json));
         }
-       });
-      socketInstance.emit("c2sOK", { user });
+      });
+      socketInstance.emit("c2sOK", { "user": user });
       setReadyButtonStatus(true);
     } else {
       setReadyButtonStatus(false);
     }
   };
 
+  // TODO : Unity -> React は引数は数字1コまたは文字列1コだけ
   const handleInformPullInfo = useCallback((directionX, directionY, rotation) => {
     console.log(directionX, directionY, rotation);
     console.log("Unityだよ");
-    socketInstance.emit("c2sPull", { user , pullInfo: { directionX, directionY , rotation } });
+    socketInstance.emit("c2sPull", { "user": user , "pullInfo": { "directionX": directionX, "directionY": directionY , "rotation": rotation } });
    }, []);
+
+  const handleInformPositions = useCallback((directionX, directionY, rotation) => {
+    console.log(directionX, directionY, rotation);
+    console.log("Unityだよ");
+    // positions = toJSON(jsonString);
+    socketInstance.emit("c2sInformPositions", { "user": user , "positions": positions });
+  }, []); 
 
   function setup(json) {
     sendMessage(
@@ -79,8 +90,11 @@ function App() {
   function enablePull() {
     sendMessage("GameManager", "EnablePull");
   }
-  function reflectPullInfo(json) {
-    sendMessage("GameManager", "ReflectPullInfo", json);
+  function reflectPullInfo(jsonString) {
+    sendMessage("GameManager", "ReflectPullInfo", jsonString);
+  }
+  function synchronizePositions(jsonString) {
+    sendMessage("GameManager", "SynchronizePositions", jsonString);
   }
 
   useEffect(() => {
@@ -95,7 +109,22 @@ function App() {
     setSocketInstance(socket);
 
     socket.on("connect", (data) => {
-      console.log(data);
+      socket.emit("c2sRequestJoin", { "user": user });
+    });
+
+    socket.on("s2cInformUsers", (data) => {
+      users = data["users"].map(x => {return x["user"];});
+    });
+
+    socket.on("s2cAveragePositions", (data) => {
+      synchronizePositions({ "positions": data["positions"] });
+      if (user === data["nextUser"]) 
+        enablePull();
+    });
+
+    socket.on("s2cInformResult", (data) => {
+      //TODO 結果の表示
+      result = data["result"];
     });
 
     socket.on("disconnect", (data) => {
@@ -120,8 +149,10 @@ function App() {
 
   useEffect(() => {
     addEventListener("InformPullInfo", handleInformPullInfo);
+    addEventListener("InformPositions", handleInformPositions);
     return () => {
       removeEventListener("InformPullInfo", handleInformPullInfo);
+      removeEventListener("InformPositions", handleInformPositions);
     };
    }, [addEventListener, removeEventListener, handleInformPullInfo]);
 

@@ -5,10 +5,12 @@ using System.Runtime.InteropServices;
 
 public class Main : MonoBehaviour
 {
+    // 渡せる引数は1つだけ
     [DllImport("__Internal")]
     private static extern void InformPullInfo(float directionX, float directionY);
 	private static extern void InformPositions(string userName, float positionX, float positionY, float positionZ);
-	[SerializeField] private Material[] coverColors;
+	
+    [SerializeField] private Material[] coverColors;
     [SerializeField] private GameObject desk;
     [SerializeField] private GameObject dragHandler;
     [System.Serializable]
@@ -88,6 +90,9 @@ public class Main : MonoBehaviour
     //     isThereMoving = true;
     // }
 
+    // Unity -> React
+    // public void InformPositions(Vector3[] positions) { ... }
+
     // React -> Unity
     public void ReflectPullInfo(string jsonString) {
         PullInfo pullInfo = JsonUtility.FromJson<PullInfo>(jsonString);
@@ -99,6 +104,9 @@ public class Main : MonoBehaviour
         erasers[userName].SendMessage("AddForce", new Vector2(directionX, directionY));
         isThereMoving = true;
     }
+
+    // React -> Unity
+    // public void SynchronizePositions(string jsonString) { ... }
 
     void Update() {
         if (isThereMoving) {

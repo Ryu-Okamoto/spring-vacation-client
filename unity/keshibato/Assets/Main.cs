@@ -1,48 +1,53 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using System.Runtime.InteropServices;
 
 public class Main : MonoBehaviour
 {
-    // 渡せる引数は1つだけ
     [DllImport("__Internal")]
-    private static extern void InformPullInfo(float directionX, float directionY);
-	private static extern void InformPositions(string userName, float positionX, float positionY, float positionZ);
+    private static extern void InformPullInfo(float directionX, float directionY, string rotation);
+	private static extern void InformPosition(int isLast, string userName, float positionX, float positionY, float positionZ);
 	
     [SerializeField] private Material[] coverColors;
     [SerializeField] private GameObject desk;
     [SerializeField] private GameObject dragHandler;
+    
     [System.Serializable]
     class Users
     {
         public string[] users;
     }
     [System.Serializable]
-    class PullInfo 
+    class PullInfo // TODO: Jsonの構造がちがう！
     {
         public string user;
         public float directionX;
         public float directionY;
     }
+    [System.Serializable]
+    class UserPosition 
+    {
+        public string user;
+        public float positionX;
+        public float positionY;
+        public float positionZ;
+    }
+    [System.Serializable]
+    class UserPositions
+    {
+        public UserPosition[] positions;
+    }
 
     private const int COVER_INDEX = 1;
 
     private Dictionary<string, GameObject> erasers;
-    private bool isThereMoving;//isMovingとの違いはなんでしょう
-
-
-    // for demo play
-    private string playerName = "alice";
+    private bool isMoving;
 
     void Start() {
         erasers = new Dictionary<string, GameObject>();
-        isThereMoving = false;
-        
-        // for demo play
-        // Setup("{\"users\":[\"alice\", \"bob\", \"carol\", \"dave\", \"ellen\"]}");
-        // EnablePull();
-
+        isMoving = false;
     }
 
     // Raect -> Unity
@@ -74,42 +79,41 @@ public class Main : MonoBehaviour
     } 
 
     // React -> Unity
-    public void EnablePull() {
+    public void EnablePull(string user) {
         dragHandler.SetActive(true);
-        dragHandler.SendMessage("SetPlayerEraser", erasers[playerName]);
+        dragHandler.SendMessage("SetPlayerEraser", erasers[user]);
     }
-
-    // Unity -> React
-    // public void InformPullInfo(Vector2 direction) {
-    //     dragHandler.SetActive(false);
-
-    //     // TODO
-    //     // call React's function and inform server with pull information.
-
-        
-    //     isThereMoving = true;
-    // }
-
-    // Unity -> React
-    // public void InformPositions(Vector3[] positions) { ... }
 
     // React -> Unity
     public void ReflectPullInfo(string jsonString) {
         PullInfo pullInfo = JsonUtility.FromJson<PullInfo>(jsonString);
         string userName = pullInfo.user;
-        if (playerName == userName)
-            return;
         float directionX = pullInfo.directionX;
         float directionY = pullInfo.directionY;
         erasers[userName].SendMessage("AddForce", new Vector2(directionX, directionY));
-        isThereMoving = true;
     }
 
     // React -> Unity
-    // public void SynchronizePositions(string jsonString) { ... }
+    public void SynchronizePositions(string jsonString) {
+        UserPosition[] positions = JsonUtility.FromJson<UserPositions>(jsonString).positions;
+        HashSet<string> deadUsers = new HashSet<string>(erasers.Keys);
+        foreach (UserPosition position in positions) {
+            deadUsers.Remove(position.user);
+            if (erasers.ContainsKey(position.user)) 
+                erasers[position.user].transform.position = new Vector3(position.positionX, position.positionY, position.positionZ);
+            else {
+                GameObject prefab = (GameObject)Resources.Load("Eraser");
+                erasers.Add(position.user, Instantiate(prefab, new Vector3(position.positionX, position.positionY, position.positionZ), Quaternion.identity));
+            }
+        }
+        foreach (string deadUser in deadUsers) {
+            erasers[deadUser].SendMessage("Explode");
+            erasers.Remove(deadUser);
+        }
+    }
 
     void Update() {
-        if (isThereMoving) {
+        if (isMoving) {
             foreach (var (username, eraser) in erasers) {
                 if (eraser.transform.position.y < -5.0f) {
                     eraser.SendMessage("Explode");
@@ -119,14 +123,21 @@ public class Main : MonoBehaviour
                 if (!eraser.GetComponent<Rigidbody>().IsSleeping())
                     return;
             }
-            isThereMoving = false;
+            isMoving = false;
+            FireInformPosition();
+        }
+    }
 
-            // for demo play
-            if (erasers.ContainsKey(playerName))
-                EnablePull();
-
-            // TODO
-            // call React's function and inform positions of erasers.
+    void FireInformPullInfo(Vector2 direction) {
+        InformPullInfo(direction.x, direction.y, null);
+    }
+    void FireInformPosition() {
+        foreach (string username in erasers.Keys) {
+            Vector3 position = erasers[username].transform.position;
+            if (username == erasers.Keys.Last())
+                InformPosition(0, username, position.x, position.y, position.z);
+            else
+                InformPosition(1, username, position.x, position.y, position.z);
         }
     }
 }

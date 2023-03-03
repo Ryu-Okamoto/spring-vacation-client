@@ -55,7 +55,8 @@ public class DragHandlerScript : MonoBehaviour, IDragHandler, IBeginDragHandler,
             float scale = Mathf.Min(difference.magnitude / dragMax, 1.0f);
             Vector2 direction = scale * difference.normalized; 
             playerEraser.SendMessage("AddForce", direction);
-            gameManager.SendMessage("InformPullInfo", direction);
+            gameManager.SendMessage("FireInformPullInfo", direction);
+            gameObject.SetActive(false); // NEW
         }
         playerEraser.SendMessage("SetArrowActive", false);
     }

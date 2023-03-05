@@ -1,5 +1,5 @@
 import "./App.css";
-import { useCallback, useEffect, useState, useRef, Component } from "react";
+import { useCallback, useEffect, useState, useRef} from "react";
 import { Unity, useUnityContext } from "react-unity-webgl";
 import { socket } from "./components/socket";
 
@@ -65,7 +65,7 @@ function App() {
         }
       }
     );
-  }, [socket, user]);
+  }, [user]);
 
   const handleInformPosition = useCallback((isLast, username, positionX, positionY, positionZ) => {
     positions.current.push(
@@ -80,7 +80,7 @@ function App() {
       socket.emit("c2sInformPositions", { "user": user, "positions": positions.current });
       positions.current.splice(0);
     }
-  }, [socket, user]); 
+  }, [user]); 
 
   function setup(jsonString) {
     sendMessage("GameManager", "Setup", jsonString);
@@ -110,7 +110,7 @@ function App() {
     socket.on("disconnect", (data) => {
       console.log(data);
     });
-  }, [socket]);
+  }, []);
 
   useEffect(() => {
     addEventListener("InformPullInfo", handleInformPullInfo);

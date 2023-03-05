@@ -1,7 +1,7 @@
 import "./App.css";
-import { io } from "socket.io-client";
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef, Component } from "react";
 import { Unity, useUnityContext } from "react-unity-webgl";
+import { socket } from "./components/socket";
 
 function App() {
   const [user, setUser] = useState("anonymous");
@@ -16,12 +16,6 @@ function App() {
     codeUrl: "Build/public.wasm",
   });
 
-  const socket = io("localhost:5001/", {
-    transports: ["websocket"],
-    cors: {
-      origin: "http://localhost:3000/",
-    },
-  });
   
   const handleName = (e) => {
     const name = e.target.value;

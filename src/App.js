@@ -48,6 +48,7 @@ function App() {
     });
     socket.on("s2cAveragePositions", (data) => {
       synchronizePositions(JSON.stringify({ "positions": data["positions"] }));
+      console.log(data["nextUser"])
       if (user === data["nextUser"]) 
         enablePull(user);
     });
@@ -103,12 +104,13 @@ function App() {
     });
     
     socket.on("s2cInformResult", (data) => {
-      //TODO 結果の表示
-      //const result = data["result"];
+      const result = data["result"];
+      console.log(result);
     });
 
     socket.on("disconnect", (data) => {
       console.log(data);
+      // TODO: 結果の出力
     });
   }, []);
 

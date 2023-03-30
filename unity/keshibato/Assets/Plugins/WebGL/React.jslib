@@ -1,4 +1,10 @@
 mergeInto(LibraryManager.library, {
+  InformUsername: function (username) {
+    window.dispatchReactUnityEvent("InformUsername", username);
+  },
+  InformReady: function () {
+    window.dispatchReactUnityEvent("InformReady");
+  },
   InformPullInfo: function (directionX, directionY) {
     window.dispatchReactUnityEvent("InformPullInfo", directionX, directionY);
   },

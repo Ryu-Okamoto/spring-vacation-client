@@ -9,18 +9,18 @@ public class GameMain : MonoBehaviour
 {
     [DllImport("__Internal")]
     private static extern void InformPullInfo(float directionX, float directionY, string rotation);
-	[DllImport("__Internal")]
+    [DllImport("__Internal")]
     private static extern void InformPosition(int isLast, string userName, float positionX, float positionY, float positionZ);
-	
+
     [SerializeField] private GameObject gameObjects;
     [SerializeField] private GameObject resultObjects;
 
     [SerializeField] private Material[] coverColors;
     private const int COVER_INDEX = 1;
-    
+
     [SerializeField] private GameObject desk;
     [SerializeField] private GameObject dragHandler;
-    
+
     [System.Serializable]
     class Users
     {
@@ -40,7 +40,7 @@ public class GameMain : MonoBehaviour
         public PullInfo pullInfo;
     }
     [System.Serializable]
-    class UserPosition 
+    class UserPosition
     {
         public string user;
         public float positionX;
@@ -56,47 +56,66 @@ public class GameMain : MonoBehaviour
     private Dictionary<string, GameObject> erasers;
     private bool isMoving;
 
-    void Start() {
+    void Start()
+    {
         erasers = new Dictionary<string, GameObject>();
         isMoving = false;
-    }
+		// Setup("0{\"users\":[\"alice\", \"bob\", \"carol\", \"dave\", \"ellen\"]}");
+		// Setup("1alice");
+	}
 
     // Raect -> Unity
-    public void Setup(string jsonString) {
-        foreach (var eraser in erasers.Values)
-            eraser.SendMessage("Explode");
-        erasers.Clear();
-        string[] users = JsonUtility.FromJson<Users>(jsonString).users;
-        GameObject prefab = (GameObject)Resources.Load("Eraser");
-        Vector3[] initialPositions = CalculateInitialPositions(users.Length);
-        for (int i = 0; i < users.Length; ++i) {
-            GameObject eraser = Instantiate(prefab, initialPositions[i], Quaternion.identity);
-            GameObject cover = eraser.transform.GetChild(COVER_INDEX).gameObject;
-            int colorIndex = i % coverColors.Length;
-            cover.GetComponent<MeshRenderer>().material = coverColors[colorIndex];
-            erasers.Add(users[i], eraser);
-        }
+    public void Setup(string jsonString)
+    {
+        int mode = jsonString[0] - '0';
+		jsonString = jsonString.Substring(1);
+		switch (mode)
+        {
+            case 1:
+				EnablePull(jsonString);
+                break;
+			default:
+                foreach (var eraser in erasers.Values)
+                    eraser.SendMessage("Explode");
+                erasers.Clear();
+                string[] users = JsonUtility.FromJson<Users>(jsonString).users;
+                GameObject prefab = (GameObject)Resources.Load("Eraser");
+                Vector3[] initialPositions = CalculateInitialPositions(users.Length);
+                for (int i = 0; i < users.Length; ++i)
+                {
+                    GameObject eraser = Instantiate(prefab, initialPositions[i], Quaternion.identity);
+                    GameObject cover = eraser.transform.GetChild(COVER_INDEX).gameObject;
+                    int colorIndex = i % coverColors.Length;
+                    cover.GetComponent<MeshRenderer>().material = coverColors[colorIndex];
+                    erasers.Add(users[i], eraser);
+                }
+				break;
+		}
     }
 
-    private Vector3[] CalculateInitialPositions(int numOfErasers) {
+    private Vector3[] CalculateInitialPositions(int numOfErasers)
+    {
         float radius = 0.75f * desk.transform.localScale.z;
         float aspect = desk.transform.localScale.x / desk.transform.localScale.z;
         Vector3[] initialPositions = new Vector3[numOfErasers];
-        for (int i = 0; i < numOfErasers; ++i) {
+        for (int i = 0; i < numOfErasers; ++i)
+        {
             float argument = Mathf.Deg2Rad * i * 360.0f / numOfErasers;
             initialPositions[i] = new Vector3(aspect * radius * Mathf.Cos(argument), 5.0f, radius * Mathf.Sin(argument));
         }
         return initialPositions;
-    } 
+    }
 
     // React -> Unity
-    public void EnablePull(string user) {
+    public void EnablePull(string user)
+    {
         dragHandler.SetActive(true);
         dragHandler.SendMessage("SetPlayerEraser", erasers[user]);
     }
 
     // React -> Unity
-    public void ReflectPullInfo(string jsonString) {
+    public void ReflectPullInfo(string jsonString)
+    {
         SharePullInfo sharePullInfo = JsonUtility.FromJson<SharePullInfo>(jsonString);
         string userName = sharePullInfo.user;
         float directionX = sharePullInfo.pullInfo.directionX;
@@ -106,30 +125,39 @@ public class GameMain : MonoBehaviour
     }
 
     // React -> Unity
-    public void SynchronizePositions(string jsonString) {
+    public void SynchronizePositions(string jsonString)
+    {
         UserPosition[] positions = JsonUtility.FromJson<UserPositions>(jsonString).positions;
         HashSet<string> deadUsers = new HashSet<string>(erasers.Keys);
-        foreach (UserPosition position in positions) {
+        foreach (UserPosition position in positions)
+        {
             deadUsers.Remove(position.user);
-            if (erasers.ContainsKey(position.user)) 
+            if (erasers.ContainsKey(position.user))
                 erasers[position.user].transform.position = new Vector3(position.positionX, position.positionY, position.positionZ);
-            else {
+            else
+            {
                 GameObject prefab = (GameObject)Resources.Load("Eraser");
                 erasers.Add(position.user, Instantiate(prefab, new Vector3(position.positionX, position.positionY, position.positionZ), Quaternion.identity));
             }
         }
-        foreach (string deadUser in deadUsers) {
-            if (erasers.ContainsKey(deadUser)) {
+        foreach (string deadUser in deadUsers)
+        {
+            if (erasers.ContainsKey(deadUser))
+            {
                 erasers[deadUser].SendMessage("Explode");
                 erasers.Remove(deadUser);
             }
         }
     }
 
-    void Update() {
-        if (isMoving) {
-            foreach (var (username, eraser) in erasers) {
-                if (eraser.transform.position.y < -3.0f) {
+    void Update()
+    {
+        if (isMoving)
+        {
+            foreach (var (username, eraser) in erasers)
+            {
+                if (eraser.transform.position.y < -3.0f)
+                {
                     eraser.SendMessage("Explode");
                     erasers.Remove(username);
                     return;
@@ -142,12 +170,15 @@ public class GameMain : MonoBehaviour
         }
     }
 
-    void FireInformPullInfo(Vector2 direction) {
+    void FireInformPullInfo(Vector2 direction)
+    {
         InformPullInfo(direction.x, direction.y, null);
         isMoving = true;
     }
-    void FireInformPosition() {
-        foreach (string username in erasers.Keys) {
+    void FireInformPosition()
+    {
+        foreach (string username in erasers.Keys)
+        {
             Vector3 position = erasers[username].transform.position;
             if (username == erasers.Keys.Last())
                 InformPosition(1, username, position.x, position.y, position.z);

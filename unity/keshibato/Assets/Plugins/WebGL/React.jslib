@@ -1,6 +1,6 @@
 mergeInto(LibraryManager.library, {
   InformUsername: function (username) {
-    window.dispatchReactUnityEvent("InformUsername", username);
+    window.dispatchReactUnityEvent("InformUsername", UTF8ToString(username));
   },
   InformReady: function () {
     window.dispatchReactUnityEvent("InformReady");

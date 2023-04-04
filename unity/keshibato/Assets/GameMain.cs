@@ -150,6 +150,12 @@ public class GameMain : MonoBehaviour
         }
     }
 
+    // React -> Unity
+    public void ChangeToResult() {
+        gameObjects.SetActive(false);
+        resultObjects.SetActive(true);
+    }
+
     void Update()
     {
         if (isMoving)

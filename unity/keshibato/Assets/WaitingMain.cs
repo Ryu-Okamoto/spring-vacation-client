@@ -20,13 +20,13 @@ public class WaitingMain : MonoBehaviour
     [System.Serializable]
     private class UserInfo
     {
-        public string name;
-        public int    ready;    // ready => 1, not => 0
+        public string user;
+        public bool   isReady;    // ready => 1, not => 0
     }
     [System.Serializable]
     private class UserInfos
     {
-        public UserInfo[] infos;
+        public UserInfo[] users;
     }
 
     public void OnPushReadyButton() {
@@ -34,13 +34,23 @@ public class WaitingMain : MonoBehaviour
         InformReady();
     }
 
+    List<GameObject> nodeList;
+
+    void Start() {
+        nodeList = new List<GameObject>();
+    }
+
     // React -> Unity
     public void SetContent(string jsonString) {
-        UserInfo[] userInfos = JsonUtility.FromJson<UserInfos>(jsonString).infos;
+        foreach (GameObject node in nodeList)
+            Destroy(node);
+        nodeList.Clear();
+        UserInfo[] userInfos = JsonUtility.FromJson<UserInfos>(jsonString).users;
         foreach (UserInfo userInfo in userInfos) {
             GameObject node = Instantiate(nodePrefab, playerContent.transform.position, Quaternion.identity, playerContent.transform);
-            node.SendMessage("SetName", userInfo.name);
-            if (userInfo.ready == 1)
+            nodeList.Add(node);
+            node.SendMessage("SetName", userInfo.user);
+            if (userInfo.isReady)
                 node.SendMessage("TurnGreen");
             else
                 node.SendMessage("TurnRed");
@@ -49,6 +59,7 @@ public class WaitingMain : MonoBehaviour
 
     // React -> Unity
     public void ChangeToGame() {
+        readyButton.SetActive(true);
         waitingObjects.SetActive(false);
         gameObjects.SetActive(true);
     }

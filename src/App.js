@@ -23,12 +23,14 @@ function App() {
       socket.emit("c2sRequestJoin", { user: userName });
     },
     [isLoaded]
-    );
+  );
     
-    // 「Ready」ボタン押下時の処理
+  // 「Ready」ボタン押下時の処理
   const handleInformReady = useCallback(() => {
-    socket.emit("c2sOK", { user: userName });
-  }, [userName]);
+      socket.emit("c2sOK", { user: userName });
+    }, 
+    [userName]
+  );
   
   // ユーザが消しゴムを引っ張ったときの処理
   const handleInformPullInfo = useCallback(
@@ -43,8 +45,9 @@ function App() {
       });
     },
     [userName]
-    );
-    // 位置の計算が終わり、その結果が送られてきたときの処理
+  );
+
+  // 位置の計算が終わり、その結果が送られてきたときの処理
   const handleInformPosition = useCallback(
     (isLast, playerName, positionX, positionY, positionZ) => {
       playerPositions.current.push({
@@ -65,24 +68,28 @@ function App() {
   );
 
   useEffect(() => {
-    if (isLoaded) {
-      addEventListener("InformUsername", handleInformUsername);
-      return () => {
-        removeEventListener("InformUsername", handleInformUsername);
-      };
-    }
-  }, [isLoaded, addEventListener, removeEventListener, handleInformUsername]);
+      if (isLoaded) {
+        addEventListener("InformUsername", handleInformUsername);
+        return () => {
+          removeEventListener("InformUsername", handleInformUsername);
+        };
+      }
+    }, 
+    [isLoaded, addEventListener, removeEventListener, handleInformUsername]
+  );
 
   useEffect(() => {
-    addEventListener("InformReady", handleInformReady);
-    addEventListener("InformPullInfo", handleInformPullInfo);
-    addEventListener("InformPosition", handleInformPosition);
-    return () => {
-      removeEventListener("InformReady", handleInformReady);
-      removeEventListener("InformPullInfo", handleInformPullInfo);
-      removeEventListener("InformPosition", handleInformPosition);
-    };
-  }, [addEventListener, removeEventListener, handleInformReady, handleInformPullInfo, handleInformPosition]);
+      addEventListener("InformReady", handleInformReady);
+      addEventListener("InformPullInfo", handleInformPullInfo);
+      addEventListener("InformPosition", handleInformPosition);
+      return () => {
+        removeEventListener("InformReady", handleInformReady);
+        removeEventListener("InformPullInfo", handleInformPullInfo);
+        removeEventListener("InformPosition", handleInformPosition);
+      };
+    }, 
+    [addEventListener, removeEventListener, handleInformReady, handleInformPullInfo, handleInformPosition]
+  );
 
   function enablePull() {
     sendMessage("GameManager", "Setup", "1" + userName);
@@ -100,13 +107,10 @@ function App() {
       // 参加者の入退室時
       socket.on("s2cInformUsers", (data) => {
         playerNames.current = data["users"];
-        const infos = data["users"].map((name) => {
-          return { name: name, ready: 1 };
-        });
         sendMessage(
           "WaitingManager",
           "SetContent",
-          '{ "infos": ' + JSON.stringify(infos) + "}"
+          '{ "users": ' + JSON.stringify(data["users"]) + "}"
         );
       });
 
@@ -151,10 +155,15 @@ function App() {
 
       // ゲーム終了時
       socket.on("s2cInformResult", (data) => {
-        const result = data["result"];
-        console.log(result);
+        sendMessage("GameManager", "ChangeToResult");
+        sendMessage(
+          "ResultManager",
+          "SetContent",
+          '{ "result": ' + JSON.stringify(data["result"]) + "}"
+        );
       });
-    } else {
+    } 
+    else {
       socket.on("connect", () => {
         console.log("connected");
       });

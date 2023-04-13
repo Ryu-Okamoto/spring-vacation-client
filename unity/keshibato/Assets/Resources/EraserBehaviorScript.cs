@@ -5,23 +5,28 @@ using UnityEngine;
 public class EraserBehaviorScript : MonoBehaviour
 {
     [SerializeField] private GameObject particleObject;
-    private const int ARROW_INDEX = 3;
+    [SerializeField] private GameObject arrow;
+    [SerializeField] private GameObject nameTag;
 
-    void Start() {}
-    void Update() {}
+    void Update() {
+        nameTag.transform.position = this.transform.position + new Vector3(0.0f, 0.0f, 3.0f);
+        nameTag.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
+    }
+
+    void SetNameTag(string name) {
+        nameTag.GetComponent<TextMesh>().text = name;
+    }
 
     void SetArrowActive(bool available) {
-        transform.GetChild(ARROW_INDEX).gameObject.SetActive(available);
+        arrow.SetActive(available);
     }
 
     void SetArrowScale(float scale) {
         scale *= 2.0f;
-        GameObject arrow = transform.GetChild(ARROW_INDEX).gameObject;
         arrow.transform.localScale = new Vector3(scale, scale, scale);
     }
 
     void SetArrowRotation(float angle) {
-        GameObject arrow = transform.GetChild(ARROW_INDEX).gameObject;
         arrow.transform.rotation = Quaternion.Euler(90.0f, angle, 0.0f);
     }
 

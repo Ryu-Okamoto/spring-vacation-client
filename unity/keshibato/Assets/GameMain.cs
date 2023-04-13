@@ -60,6 +60,13 @@ public class GameMain : MonoBehaviour
     {
         erasers = new Dictionary<string, GameObject>();
         isMoving = false;
+
+    /*
+        // Test
+        GameObject prefab = (GameObject)Resources.Load("Eraser");
+        GameObject eraser = Instantiate(prefab, new Vector3(0.0f, 5.0f, 0.0f), Quaternion.identity);
+        eraser.SendMessage("SetNameTag", "Alice");
+    */
 		// Setup("0{\"users\":[\"alice\", \"bob\", \"carol\", \"dave\", \"ellen\"]}");
 		// Setup("1alice");
 	}
@@ -87,6 +94,7 @@ public class GameMain : MonoBehaviour
                     GameObject cover = eraser.transform.GetChild(COVER_INDEX).gameObject;
                     int colorIndex = i % coverColors.Length;
                     cover.GetComponent<MeshRenderer>().material = coverColors[colorIndex];
+                    eraser.SendMessage("SetNameTag", users[i]);
                     erasers.Add(users[i], eraser);
                 }
 				break;
@@ -152,6 +160,9 @@ public class GameMain : MonoBehaviour
 
     // React -> Unity
     public void ChangeToResult() {
+        foreach (var eraser in erasers.Values)
+            Destroy(eraser);
+        erasers.Clear();
         gameObjects.SetActive(false);
         resultObjects.SetActive(true);
     }

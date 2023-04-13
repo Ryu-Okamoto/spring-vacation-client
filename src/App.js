@@ -185,8 +185,8 @@ function App() {
       <Unity
         unityProvider={unityProvider}
         style={{
-          width: 800,
-          height: 400,
+          width: "80%",
+          height: "80%",
           background: "grey",
         }}
       />

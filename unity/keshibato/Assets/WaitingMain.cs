@@ -16,6 +16,8 @@ public class WaitingMain : MonoBehaviour
     [SerializeField] private GameObject readyButton;
     [SerializeField] private GameObject playerContent;
     [SerializeField] private GameObject nodePrefab;
+    
+    private List<GameObject>            nodeList;
 
     [System.Serializable]
     private class UserInfo
@@ -33,8 +35,6 @@ public class WaitingMain : MonoBehaviour
         readyButton.SetActive(false);
         InformReady();
     }
-
-    List<GameObject> nodeList;
 
     void Start() {
         nodeList = new List<GameObject>();
